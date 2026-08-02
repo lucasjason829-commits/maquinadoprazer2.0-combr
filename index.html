@@ -545,7 +545,7 @@
     </div>
 
     <div id="upsell-final">
-      <a href="https://area-maquina-do-prazer.vercel.app/" target="_blank" rel="noopener" class="btn-acesso-membro" style="display:block;text-align:center;">🔓 ACESSE SEU PRODUTO</a>
+      <a href="https://avan-adoproticolo.vercel.app/" target="_blank" rel="noopener" id="link-acesso-membro" class="btn-acesso-membro" style="display:block;text-align:center;">🔓 ACESSE SEU PRODUTO</a>
     </div>
   </div>
 </div>
@@ -911,6 +911,7 @@ function showUpsellError(msg){const e=document.getElementById('upsell-error');e.
 function hideUpsellError(){document.getElementById('upsell-error').style.display='none';}
 
 function pularUpsell(){
+  document.getElementById('link-acesso-membro').href='https://avan-adoproticolo.vercel.app/';
   document.getElementById('upsell-form').style.display='none';
   document.getElementById('upsell-final').style.display='block';
   document.getElementById('upsell-final').scrollIntoView({behavior:'smooth',block:'center'});
@@ -958,6 +959,7 @@ function iniciarPollingUpsell(paymentId){
       if(response.ok){
         if(data.status==='approved'){
           clearInterval(pollIntervalUpsell);
+          document.getElementById('link-acesso-membro').href='https://avan-adoproticolo.vercel.app/?premium=1';
           document.getElementById('upsell-pix-result').style.display='none';
           document.getElementById('upsell-aprovado').style.display='block';
           document.getElementById('upsell-final').style.display='block';
