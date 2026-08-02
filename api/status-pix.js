@@ -2,8 +2,6 @@
 // Consulta o status de um pagamento PIX já criado no Mercado Pago
 //
 // USO: GET /api/status-pix?id=123456789
-//
-// Retorna: { status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'expired' | ... }
 
 const ALLOWED_ORIGIN = "*";
 
@@ -31,9 +29,9 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "ID do pagamento é obrigatório." });
     }
 
-    const accessToken = process.env.MP_ACCESS_TOKEN;
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
-      console.error("MP_ACCESS_TOKEN não configurado no ambiente.");
+      console.error("MERCADOPAGO_ACCESS_TOKEN não configurado no ambiente.");
       return res.status(500).json({ error: "Erro de configuração do servidor." });
     }
 
@@ -58,10 +56,3 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: "Erro interno ao consultar o pagamento." });
   }
 };
-
-// ---------------------------------------------------------------------------
-// SE NÃO FOR HOSPEDAR NA VERCEL:
-// troque por uma rota normal, ex. com Express:
-//
-//   app.get('/api/status-pix', async (req, res) => { ...mesmo código de dentro... });
-// ---------------------------------------------------------------------------
