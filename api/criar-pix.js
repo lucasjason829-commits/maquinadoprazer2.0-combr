@@ -2,18 +2,13 @@
 // Cria um pagamento PIX no Mercado Pago e devolve o QR Code (imagem base64 + código copia-e-cola)
 //
 // VARIÁVEL DE AMBIENTE NECESSÁRIA:
-//   MP_ACCESS_TOKEN  -> Access Token de PRODUÇÃO da sua conta Mercado Pago
-//                        (Mercado Pago > Suas integrações > Credenciais de produção)
-//
-// Se for hospedar em outro lugar que não seja Vercel, veja a nota no final do arquivo.
+//   MERCADOPAGO_ACCESS_TOKEN  -> Access Token de PRODUÇÃO da sua conta Mercado Pago
 
 const PRECO_BASE = 15.00;
 const PRECO_BUMP1 = 4.97;
 const PRECO_BUMP2 = 4.97;
 const PRECO_UPSELL = 47.90;
 
-// Troque pelo domínio real onde o front-end (o HTML) vai ficar hospedado.
-// Pode colocar mais de um separado por vírgula, ou "*" para liberar geral (menos seguro).
 const ALLOWED_ORIGIN = "*";
 
 function setCors(res) {
@@ -65,10 +60,59 @@ module.exports = async function handler(req, res) {
     const valor = calcularValor({ produto, bump1, bump2 });
     const { first_name, last_name } = separarNome(nome);
 
-    const accessToken = process.env.MP_ACCESS_TOKEN;
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
-      console.error("MP_ACCESS_TOKEN não configurado no ambiente.");
+      console.error("MERCADOPAGO_ACCESS_TOKEN não configurado no ambiente.");
       return res.status(500).json({ error: "Erro de configuração do servidor." });
     }
 
-    const idempotencyKey =
+    const idempotencyKey = `${cpfLimpo}-${produto || "principal"}-${Date.now()}`;
+
+    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Idempotency-Key": idempotencyKey
+      },
+      body: JSON.stringify({
+        transaction_amount: valor,
+        description: produto === "upsell" ? "Protocolo Avançado" : "Método Máquina de Prazer",
+        payment_method_id: "pix",
+        payer: {
+          email: email,
+          first_name: first_name,
+          last_name: last_name,
+          identification: {
+            type: "CPF",
+            number: cpfLimpo
+          }
+        }
+      })
+    });
+
+    const data = await mpResponse.json();
+
+    if (!mpResponse.ok) {
+      console.error("Erro Mercado Pago:", data);
+      return res.status(400).json({ error: data.message || "Erro ao gerar o PIX. Tente novamente." });
+    }
+
+    const pointOfInteraction = data.point_of_interaction && data.point_of_interaction.transaction_data;
+
+    if (!pointOfInteraction) {
+      return res.status(400).json({ error: "Não foi possível gerar o QR Code. Tente novamente." });
+    }
+
+    return res.status(200).json({
+      id: data.id,
+      qr_code: pointOfInteraction.qr_code,
+      qr_code_base64: pointOfInteraction.qr_code_base64,
+      status: data.status
+    });
+
+  } catch (err) {
+    console.error("Erro ao criar PIX:", err);
+    return res.status(500).json({ error: "Erro interno ao gerar o PIX." });
+  }
+};
